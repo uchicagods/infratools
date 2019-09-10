@@ -18,6 +18,7 @@ ENV_PATH = pathlib.Path.home() / 'envs'
 @argcmdr.local('--env-dir', default=ENV_PATH, type=pathlib.Path, metavar='path',
                help=f"directory path under which to store virtual environments "
                     f"(default: {ENV_PATH})")
+@argcmdr.local('-V', '--version', action='version', version=f'%(prog)s {VERSION}')
 def main(context, args):
     """make a python virtual environment and install it into ipython and jupyter"""
 

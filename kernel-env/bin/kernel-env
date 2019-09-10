@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+
+import pathlib
+import sys
+
+import argcmdr
+from plumbum import colors
+
+
+VERSION = '0.0.0'
+
+ENV_PATH = pathlib.Path.home() / 'envs'
+
+
+@argcmdr.local('name', help="name to assign to virtual environment")
+@argcmdr.local('--isolate', action='store_true', default=False,
+               help="isolate environment from Python packages installed system-wide")
+@argcmdr.local('--env-dir', default=ENV_PATH, type=pathlib.Path, metavar='path',
+               help=f"directory path under which to store virtual environments "
+                    f"(default: {ENV_PATH})")
+def main(context, args):
+    """make a python virtual environment and install it into ipython and jupyter"""
+
+    # NOTE: unclear how to go through virtual python;
+    # NOTE: so, we'll stick to subprocesses.
+
+    display_name = f"Python ({args.name})"
+
+    venv_path = args.env_dir / args.name
+
+    venv_pip = str(venv_path / 'bin' / 'pip')
+    venv_python = str(venv_path / 'bin' / 'python')
+
+    # args.env_dir.mkdir(parents=True, exist_ok=True)
+
+    yield context.local['mkdir']['-p', args.env_dir]
+
+    # venv.create(
+    #     venv_path,
+    #     system_site_packages=(not args.isolate),
+    #     with_pip=True,
+    # )
+
+    yield context.local[sys.executable][
+        '-m', 'venv',
+        ('--system-site-packages',) if not args.isolate else (),
+        venv_path,
+    ]
+
+    yield context.local[venv_pip]['install', 'ipykernel']
+
+    yield context.local[venv_python][
+        '-m', 'ipykernel',
+        'install',
+        '--user',
+        '--name', args.name,
+        '--display-name', display_name,
+    ]
+
+    print()
+    print('SUCCESS' | colors.success | colors.bold)
+    print()
+
+    print(
+        'Python virtual environment',
+        (args.name | colors.bold),
+        'has been created and is now available for use by Jupyter notebooks.',
+    )
+    print('\n')
+
+    print('Add packages' | colors.underline)
+    print()
+    print('1) In this terminal, activate your virtual environment:')
+    print()
+    print(f'    $ source ~/envs/{args.name}/bin/activate')
+    print()
+    print('2) Install packages:')
+    print()
+    print('    $ pip install ...')
+    print()
+    print('3) Deactivate the environment:')
+    print()
+    print('    $ deactivate')
+    print('\n')
+
+    print('Use with a new notebook' | colors.underline)
+    print()
+    print('1) On the Jupyter Files page, click the', ('New' | colors.bold), 'button.')
+    print()
+    print('2) From the dropdown, select', (display_name | colors.bold) + '.')
+    print('\n')
+
+    print('Use with an existing notebook' | colors.underline)
+    print()
+    print('With the notebook open, change its "kernel" via the', ('Kernel' | colors.bold), 'menu:')
+    print()
+    print('    Kernel > Change kernel >', display_name | colors.bold)
+    print()
+
+
+if __name__ == '__main__':
+    argcmdr.main(main)
